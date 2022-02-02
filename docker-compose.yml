@@ -1,0 +1,13 @@
+version: '3'
+services:
+  # See https://github.com/jim-meyer/nanodet/blob/main/demo_ncnn/README.md
+  nanodet_ncnn_inferer:
+    container_name: "nanodet_ncnn_inferer"
+    build:
+      context: .
+      dockerfile: Dockerfile_ncnn
+    volumes:
+      - .:/nanodet
+      - /tmp/.X11-unix/X0:/tmp/.X11-unix/X0
+    environment:
+      - ncnn_DIR=/git/ncnn/build/install/lib/cmake/ncnn

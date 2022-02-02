@@ -161,7 +161,7 @@ const int color_list[80][3] =
     {127 ,127 ,  0},
 };
 
-void draw_bboxes(const cv::Mat& bgr, const std::vector<BoxInfo>& bboxes, object_rect effect_roi)
+cv::Mat draw_bboxes(const cv::Mat& bgr, const std::vector<BoxInfo>& bboxes, object_rect effect_roi)
 {
     static const char* class_names[] = { "person", "bicycle", "car", "motorcycle", "airplane", "bus",
                                         "train", "truck", "boat", "traffic light", "fire hydrant",
@@ -218,7 +218,8 @@ void draw_bboxes(const cv::Mat& bgr, const std::vector<BoxInfo>& bboxes, object_
             cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255, 255, 255));
     }
 
-    cv::imshow("image", image);
+    //cv::imshow("image", image);
+    return image;
 }
 
 
@@ -231,6 +232,7 @@ int image_demo(NanoDet &detector, const char* imagepath)
     int height = detector.input_size[0];
     int width = detector.input_size[1];
 
+    int i = 0;
     for (auto img_name : filenames)
     {
         cv::Mat image = cv::imread(img_name);
@@ -242,10 +244,25 @@ int image_demo(NanoDet &detector, const char* imagepath)
         object_rect effect_roi;
         cv::Mat resized_img;
         resize_uniform(image, resized_img, cv::Size(width, height), effect_roi);
-        auto results = detector.detect(resized_img, 0.4, 0.5);
-        draw_bboxes(image, results, effect_roi);
-        cv::waitKey(0);
 
+        const auto begin = std::chrono::system_clock::now();
+        auto results = detector.detect(resized_img, 0.4, 0.5);
+        const auto end = std::chrono::system_clock::now();
+        auto duration = std::chrono::duration<float, std::milli>(end - begin).count();
+        {
+            std::stringstream ss;
+            ss << "Inference took (ms): " << std::to_string(duration) << std::endl;
+            printf(ss.str().c_str());
+        }
+
+        auto renderedImage = draw_bboxes(image, results, effect_roi);
+        {
+            std::stringstream ss;
+            ss << "zzz" << std::to_string(i) << ".jpg";
+            cv::imwrite(ss.str(), renderedImage);
+        }
+        //cv::waitKey(0);
+        i++;
     }
     return 0;
 }

@@ -1,0 +1,47 @@
+FROM python:3.7
+
+# This builds a docker container that can do inference using NanoDet with the NCNN support
+# See https://github.com/jim-meyer/nanodet/blob/main/demo_ncnn/README.md
+
+# Install openssh-server to allow remote debugging of apps running in the container.
+# See
+#   https://code.visualstudio.com/docs/remote/ssh#_getting-started
+#   https://code.visualstudio.com/docs/remote/containers
+RUN apt-get update && \
+    apt-get install -y openssh-server && \
+    apt-get clean
+
+RUN apt-get update && \
+    apt-get install -y build-essential git cmake libprotobuf-dev protobuf-compiler libvulkan-dev vulkan-tools libopencv-dev && \
+    apt-get clean
+
+RUN mkdir -p /git && \
+    cd /git && \
+    git clone --recursive https://github.com/Tencent/ncnn.git && \
+    cd ncnn && \
+    git submodule update --init && \
+    mkdir -p build && \
+    cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DNCNN_VULKAN=ON -DNCNN_SYSTEM_GLSLANG=ON -DNCNN_BUILD_EXAMPLES=ON .. && \
+    make -j$(nproc) && \
+    make install
+
+ADD requirements.txt /tmp
+RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
+    rm /tmp/requirements.txt
+
+WORKDIR /nanodet
+
+RUN mkdir -p /nanodet_downloads && \
+    cd /nanodet_downloads && \
+    wget 'https://drive.google.com/u/0/uc?id=1cuVBJiFKwyq1-l3AwHoP2boTesUQP-6K&export=download' -O nanodet-plus-m_416_ncnn.zip && \
+    unzip nanodet-plus-m_416_ncnn.zip
+
+#RUN cd demo_ncnn && \
+#    mkdir -p build && \
+#    cd build && \
+#    cmake .. && \
+#    make
+
+#ENTRYPOINT "/bin/bash"
+CMD ["./Dockerfile_ncnn_runtime_setup.sh"]
